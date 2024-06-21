@@ -69,11 +69,15 @@ jobs:
           name: lectricus (macOS Universal - GUI - Executable)
           path: dist/Lectricus (GUI).app.zip
 
+      - name: Rename ZIP for release
+        if: github.event_name == 'release'
+        run: cp 'dist/Lectricus (GUI).app.zip' 'dist/lectricus-macOS-universal-GUI.zip'
+
       - name: Upload executable (release)
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/Lectricus (GUI).app.zip
+          file: dist/lectricus-macOS-universal-GUI.zip
           tag: ${{ github.ref }}
           file_glob: true
