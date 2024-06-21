@@ -18,7 +18,7 @@ This project is primarily designed for auditing purposes, starting as a side pro
 * Exporting of vulnerable applications to various formats (XML, JSON, CSV, etc.)
 * Developed as a library, for easy integration into other projects
 * Targets both [Electron](https://www.electronjs.org) and [NW.js](https://nwjs.io/) applications
-* Simple GUI for non-technical users
+* Simple macOS GUI for non-technical users
 
 ----------
 
