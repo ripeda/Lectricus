@@ -1,0 +1,56 @@
+name: CI - Validate Linux (x86_64)
+
+on:
+  push:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Validate Linux (x86_64)
+    runs-on: ubuntu-latest
+    env:
+      branch: ${{ github.ref }}
+
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Set up Python 3 libraries
+        run: pip3 install --requirement requirements.txt
+
+      - name: Set up PyInstaller
+        run: pip3 install pyinstaller
+
+      - name: Build portable executable
+        run: python3 -m PyInstaller lectricus.spec
+
+      - name: Validate (List vulnerable applications)
+        run: dist/lectricus --list-vulnerable-apps
+
+      - name: Upload executable (artifact)
+        uses: actions/upload-artifact@v2
+        with:
+          name: lectricus (Linux x86_64)
+          path: dist/lectricus
+
+      - name: Compress executable (release)
+        if: github.event_name == 'release'
+        run: tar -czvf dist/lectricus-linux-x86_64.tar.gz dist/lectricus
+
+      - name: Upload executable (release)
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/lectricus-linux-x86_64.tar.gz
+          asset_name: lectricus (Linux x86_64)
+          tag: ${{ github.ref }}
+          file_glob: true

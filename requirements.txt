@@ -1,0 +1,4 @@
+electron-search>=1.3.0
+electron-fuses>=1.2.0
+websocket-client>=1.7.0
+packaging>=23.0

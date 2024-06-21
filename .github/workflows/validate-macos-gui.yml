@@ -1,0 +1,79 @@
+name: CI - Validate macOS GUI (Universal)
+
+on:
+  push:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Validate macOS GUI (Universal)
+    runs-on: macos-latest
+    env:
+      branch: ${{ github.ref }}
+
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # General Signing
+      ORG_MAC_IDENTITY: ${{ secrets.ORG_MAC_IDENTITY }}
+      # App Signing
+      ORG_MAC_DEVELOPER_ID_APPLICATION_CERT_P12_BASE64: ${{ secrets.ORG_MAC_DEVELOPER_ID_APPLICATION_CERT_P12_BASE64 }}
+      ORG_MAC_DEVELOPER_ID_APPLICATION_CERT_P12_PASSWORD: ${{ secrets.ORG_MAC_DEVELOPER_ID_APPLICATION_CERT_P12_PASSWORD }}
+      # Notarization
+      ORG_MAC_NOTARIZATION_TEAM_ID: ${{ secrets.ORG_MAC_NOTARIZATION_TEAM_ID }}
+      ORG_MAC_NOTARIZATION_APPLE_ID: ${{ secrets.ORG_MAC_NOTARIZATION_APPLE_ID }}
+      ORG_MAC_NOTARIZATION_PASSWORD: ${{ secrets.ORG_MAC_NOTARIZATION_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Import Application Signing Certificate
+        uses: dhinakg/import-codesign-certs@master
+        with:
+          p12-file-base64: ${{ secrets.ORG_MAC_DEVELOPER_ID_APPLICATION_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.ORG_MAC_DEVELOPER_ID_APPLICATION_CERT_P12_PASSWORD }}
+
+      - name: Import Installer Signing Certificate
+        uses: dhinakg/import-codesign-certs@master
+        with:
+          p12-file-base64: ${{ secrets.ORG_MAC_DEVELOPER_ID_INSTALLER_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.ORG_MAC_DEVELOPER_ID_INSTALLER_CERT_P12_PASSWORD }}
+
+      - name: Set up Python 3 libraries
+        run: pip3 install --requirement requirements.txt
+
+      - name: Set up wxPython, PyInstaller, Mac Signing Buddy and macOS Pkg Builder
+        run: pip3 install wxpython pyinstaller mac-signing-buddy macos-pkg-builder
+
+      - name: Force Universal2 charset for Python
+        run: |
+          pip3 uninstall -y charset_normalizer
+          pip3 download --platform macosx_10_9_universal2 --only-binary=:all: charset-normalizer
+          pip3 install charset_normalizer-*-macosx_10_9_universal2.whl
+
+      - name: Build portable executable
+        run: python3 -m PyInstaller lectricus_gui.spec
+
+      - name: Sign executable
+        run: python3 -m mac_signing_buddy --identity "${{ env.ORG_MAC_IDENTITY }}" --apple-id "${{ env.ORG_MAC_NOTARIZATION_APPLE_ID }}" --password "${{ env.ORG_MAC_NOTARIZATION_PASSWORD }}" --team-id "${{ env.ORG_MAC_NOTARIZATION_TEAM_ID }}" --file "dist/Lectricus (GUI).app" --entitlements ".resources/signing/entitlements.plist"
+
+      - name: Upload executable (artifact)
+        uses: actions/upload-artifact@v2
+        with:
+          name: lectricus (macOS Universal - GUI - Executable)
+          path: dist/Lectricus (GUI).app.zip
+
+      - name: Upload executable (release)
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/Lectricus (GUI).app.zip
+          tag: ${{ github.ref }}
+          file_glob: true

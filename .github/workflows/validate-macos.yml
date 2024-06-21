@@ -1,0 +1,62 @@
+name: CI - Validate macOS (Universal)
+
+on:
+  push:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Validate macOS (Universal)
+    runs-on: macos-latest
+    env:
+      branch: ${{ github.ref }}
+
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Set up Python 3 libraries
+        run: pip3 install --requirement requirements.txt
+
+      - name: Set up PyInstaller
+        run: pip3 install pyinstaller
+
+      - name: Force Universal2 charset for Python
+        run: |
+          pip3 uninstall -y charset_normalizer
+          pip3 download --platform macosx_10_9_universal2 --only-binary=:all: charset-normalizer
+          pip3 install charset_normalizer-*-macosx_10_9_universal2.whl
+
+      - name: Build portable executable
+        run: python3 -m PyInstaller lectricus.spec
+
+      - name: Validate (List vulnerable applications)
+        run: dist/lectricus --list-vulnerable-apps
+
+      - name: Upload executable (artifact)
+        uses: actions/upload-artifact@v2
+        with:
+          name: lectricus (macOS Universal)
+          path: dist/lectricus
+
+      - name: Compress executable (release)
+        if: github.event_name == 'release'
+        run: /usr/bin/ditto -c -k --sequesterRsrc --keepParent dist/lectricus dist/lectricus-macOS-universal.zip
+
+      - name: Upload executable (release)
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/lectricus-macOS-universal.zip
+          asset_name: lectricus (macOS Universal)
+          tag: ${{ github.ref }}
+          file_glob: true

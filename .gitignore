@@ -1,0 +1,8 @@
+.DS_Store
+__pycache__
+/lectricus/pppc_lister
+/dist
+/build
+*.egg-info
+.idea/*
+/TODO.md
