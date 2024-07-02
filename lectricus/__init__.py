@@ -2,7 +2,7 @@
 __init__.py: Lectricus initialization file.
 """
 
-__version__:      str = "1.0.1"
+__version__:      str = "1.1.0"
 __description__:  str = "Electron and NWJS Vulnerability Detection Utility"
 __url__:          str = "https://github.com/ripeda/lectricus"
 __license__:      str = "3-clause BSD License"
